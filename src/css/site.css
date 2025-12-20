@@ -309,6 +309,31 @@ th button:hover {
   color: #222;
 }
 
+.table-panel table thead th button {
+  display: none;
+}
+
+.table-panel th.feature-visibility,
+.table-panel td.feature-visibility {
+  width: 48px;
+  min-width: 48px;
+  text-align: center;
+}
+
+.table-panel th.feature-visibility {
+  padding: 5px 8px;
+}
+
+.table-panel td.feature-visibility {
+  padding: 0;
+}
+
+.table-panel td.feature-visibility input {
+  width: auto;
+  margin: 0 auto;
+  display: block;
+}
+
 /*
    * layer_switch ---------------------------------------------------------------
    */

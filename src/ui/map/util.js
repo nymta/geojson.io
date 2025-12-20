@@ -81,7 +81,8 @@ const addMarkers = (geojson, context, writable) => {
 
   geojson.features.forEach((d, i) => {
     const { geometry, properties } = d;
-    handleGeometry(geometry, properties, i);
+    const featureId = d.id !== undefined ? d.id : i;
+    handleGeometry(geometry, properties, featureId);
   });
 
   if (pointFeatures.length === 0) {
@@ -175,19 +176,26 @@ const addMarkers = (geojson, context, writable) => {
 
 function geojsonToLayer(context, writable) {
   const geojson = context.data.get('map');
-  if (!geojson) return;
+  if (!geojson || !geojson.features) return;
 
   const workingDatasetSource = context.map.getSource('map-data');
 
   if (workingDatasetSource) {
-    const filteredFeatures = geojson.features.filter(
-      (feature) => feature.geometry
-    );
+    const filteredFeatures = geojson.features
+      .map((feature, index) => ({
+        feature,
+        index
+      }))
+      .filter(({ feature }) => feature.geometry && feature._visible !== false)
+      .map(({ feature, index }) => ({
+        ...feature,
+        id: index
+      }));
     const filteredGeojson = {
-      type: 'FeatureCollection',
+      ...geojson,
       features: filteredFeatures
     };
-    workingDatasetSource.setData(addIds(filteredGeojson));
+    workingDatasetSource.setData(filteredGeojson);
     addMarkers(filteredGeojson, context, writable);
     if (context.data.get('recovery')) {
       zoomextent(context);
