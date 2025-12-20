@@ -4,20 +4,31 @@ module.exports = [
     style: 'mapbox://styles/mapbox/standard'
   },
   {
-    title: 'Satellite Streets',
-    style: 'mapbox://styles/mapbox/satellite-streets-v12'
+    title: 'Standard Satellite',
+    style: 'mapbox://styles/mapbox/standard-satellite'
+  },
+  {
+    title: 'Standard Light',
+    style: 'mapbox://styles/mapbox/standard',
+    config: {
+      basemap: {
+        theme: 'monochrome'
+      }
+    }
+  },
+  {
+    title: 'Standard Dark',
+    style: 'mapbox://styles/mapbox/standard',
+    config: {
+      basemap: {
+        theme: 'monochrome',
+        lightPreset: 'night'
+      }
+    }
   },
   {
     title: 'Outdoors',
     style: 'mapbox://styles/mapbox/outdoors-v12'
-  },
-  {
-    title: 'Light',
-    style: 'mapbox://styles/mapbox/light-v11'
-  },
-  {
-    title: 'Dark',
-    style: 'mapbox://styles/mapbox/dark-v11'
   },
   {
     title: 'OSM',

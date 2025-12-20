@@ -25,7 +25,10 @@ export default {
     }),
 
     replace({
-      'require.main === module': 'false' // jsonhint export quirk
+      'require.main === module': 'false', // jsonhint export quirk
+      // Replace hardcoded dev path with production path in ui/map/clickable_marker.js
+      '../dist/icons': production ? '/icons' : '../dist/icons',
+      delimiters: ['', ''] 
     }),
 
     resolve({
@@ -46,6 +49,19 @@ export default {
 
     copy({
       targets: [
+        {
+          src: 'index.html',
+          dest: './dist',
+          transform: (contents) => {
+            return contents.toString()
+              .replace("href='dist/bundle.css'", "href='bundle.css'")
+              .replace('src="dist/bundle.js"', 'src="bundle.js"');
+          }
+        },
+        {
+          src: 'img',
+          dest: './dist'
+        },
         {
           src: 'node_modules/@fortawesome/fontawesome-free/webfonts',
           dest: './dist'

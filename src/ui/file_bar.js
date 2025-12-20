@@ -78,7 +78,7 @@ module.exports = function fileBar(context) {
             alt: 'Add a custom tile layer',
             action: function () {
               const layerURL = prompt(
-                'Layer URL\ne.g. https://stamen-tiles-b.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg'
+                'Layer URL\ne.g. https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg'
               );
               if (layerURL === null) return;
               const layerName = prompt('Layer name');
@@ -165,6 +165,13 @@ module.exports = function fileBar(context) {
             action: function () {
               meta.wkxString(context);
             }
+          },
+          {
+            title: 'Load OpenLR String',
+            alt: 'Decode and show OpenLR data',
+            action: function () {
+              meta.openLR(context);
+            }
           }
         ]
       }
@@ -232,19 +239,22 @@ module.exports = function fileBar(context) {
         .select('body')
         .append('input')
         .attr('type', 'file')
+        .attr('multiple', true)
         .style('visibility', 'hidden')
         .style('position', 'absolute')
         .style('height', '0')
         .on('change', function () {
           const files = this.files;
-          if (!(files && files[0])) return;
-          readFile.readAsText(files[0], (err, text) => {
-            readFile.readFile(files[0], text, onImport);
-            if (files[0].path) {
-              context.data.set({
-                path: files[0].path
-              });
-            }
+          if (!(files && files.length)) return;
+          Array.from(files).forEach((file) => {
+            readFile.readAsText(file, (err, text) => {
+              readFile.readFile(file, text, onImport);
+              if (file.path) {
+                context.data.set({
+                  path: file.path
+                });
+              }
+            });
           });
           put.remove();
         });

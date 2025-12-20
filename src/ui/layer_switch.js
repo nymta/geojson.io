@@ -21,15 +21,27 @@ module.exports = function (context) {
       // this will likely run before the initial map style is loaded
       // streets is default, but on subsequent runs we must change styles
       if (context.map._loaded) {
-        const { title, style } = d3.select(clicked).datum();
+        const { title, style, config } = d3.select(clicked).datum();
 
-        context.map.setStyle(style);
+        context.map.setStyle(style, {
+          ...(config ? { config } : {})
+        });
 
         context.storage.set('style', title);
 
         context.data.set({
           mapStyleLoaded: true
         });
+
+        // Update toggle visibility based on new style
+        setTimeout(() => {
+          const toggle3D = d3.select('.toggle-3D');
+          const shouldHide3DForStyle =
+            title === 'OSM' ||
+            title === 'Outdoors' ||
+            title === 'Standard Satellite';
+          toggle3D.classed('hidden', shouldHide3DForStyle);
+        }, 100);
       }
     };
 
@@ -44,9 +56,18 @@ module.exports = function (context) {
 
     const activeStyle = context.storage.get('style') || DEFAULT_STYLE;
 
+    // Check if activeStyle exists in styles array, default to 'Standard' if not
+    const styleExists = styles.some(({ title }) => title === activeStyle);
+    const correctedStyle = styleExists ? activeStyle : 'Standard';
+
+    // Update localStorage if we had to correct the style
+    if (!styleExists) {
+      context.storage.set('style', correctedStyle);
+    }
+
     layerButtons
       .filter(({ title }) => {
-        return title === activeStyle;
+        return title === correctedStyle;
       })
       .call(layerSwap);
   };

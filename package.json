@@ -40,6 +40,7 @@
     "lodash": "^4.17.21",
     "mapbox-gl": "^3.5.2",
     "numeral": "^2.0.6",
+    "openlr-js": "^3.2.0",
     "osmtogeojson": "3.0.0-beta.5",
     "polytogeojson": "0.0.1",
     "qs-hash": "0.0.0",
@@ -85,8 +86,10 @@
     "test-browser": "browserify test/index.js | testling",
     "start": "concurrently --kill-others --names live-server rollup \"live-server --ignore=\"$PWD/src/**,$PWD/dist/webfonts/**,$PWD/.git\"\" \"rollup -cw\" \"npx tailwindcss -i $PWD/src/css/tailwind_src.css -o $PWD/dist/css/tailwind_dist.css --watch\"",
     "build": "rimraf dist && npx tailwindcss -i ./src/css/tailwind_src.css -o ./dist/css/tailwind_dist.css && rollup -c",
-    "serve": "live-server",
-    "deploy": "sh deploy.sh"
+    "serve": "cd dist && live-server"
+  },
+  "overrides": {
+    "@xmldom/xmldom": "0.9.8"
   },
   "lint-staged": {
     "src/**/*.js": "eslint --fix",

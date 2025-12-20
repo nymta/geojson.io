@@ -18,7 +18,8 @@ const {
   DEFAULT_PROJECTION,
   DEFAULT_DARK_FEATURE_COLOR,
   DEFAULT_LIGHT_FEATURE_COLOR,
-  DEFAULT_SATELLITE_FEATURE_COLOR
+  DEFAULT_SATELLITE_FEATURE_COLOR,
+  DEFAULT_3D_BUILDINGS
 } = require('../../constants');
 const drawStyles = require('../draw/styles');
 
@@ -97,18 +98,16 @@ module.exports = function (context, readonly) {
     );
 
     const projection = context.storage.get('projection') || DEFAULT_PROJECTION;
-    let activeStyle = context.storage.get('style') || DEFAULT_STYLE;
+    const activeStyle = context.storage.get('style') || DEFAULT_STYLE;
 
-    // handle previous users who had Streets selected
-    if (activeStyle === 'Streets') {
-      activeStyle = 'Standard';
-    }
-
-    const { style } = styles.find((d) => d.title === activeStyle);
+    const foundStyle = styles.find((d) => d.title === activeStyle);
+    const { style, config } =
+      foundStyle || styles.find((d) => d.title === 'Standard');
 
     context.map = new mapboxgl.Map({
       container: 'map',
       style,
+      ...(config ? { config } : {}),
       center: [20, 0],
       zoom: 2,
       projection,
@@ -298,54 +297,25 @@ module.exports = function (context, readonly) {
         context.data.get('mapStyleLoaded') &&
         !context.map.getSource('map-data')
       ) {
-        const { name } = context.map.getStyle();
-
         let color = DEFAULT_DARK_FEATURE_COLOR; // Sets default dark color for lighter base maps
 
-        // Sets a light color for dark base map
-        if (['Mapbox Dark'].includes(name)) {
-          color = DEFAULT_LIGHT_FEATURE_COLOR;
+        // switch to darker feature color for dark base maps
+        let config;
+        const { imports } = context.map.getStyle();
+
+        if (imports && imports.length > 0) {
+          config = context.map.getConfig('basemap');
         }
 
-        // Sets a brighter color for the satellite base map to help with visibility.
-        if (['Mapbox Satellite Streets'].includes(name)) {
-          color = DEFAULT_SATELLITE_FEATURE_COLOR;
-        }
+        if (config) {
+          // check for Standard Dark or Standard Satellite, these two should use lighter feature colors
+          if (config.theme === 'monochrome' && config.lightPreset === 'night') {
+            color = DEFAULT_LIGHT_FEATURE_COLOR;
+          }
 
-        // setFog only on Light and Dark
-        if (['Mapbox Light', 'Mapbox Dark', 'osm'].includes(name)) {
-          context.map.setFog({
-            range: [0.5, 10],
-            color: '#ffffff',
-            'high-color': '#245cdf',
-            'space-color': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              4,
-              '#010b19',
-              7,
-              '#367ab9'
-            ],
-            'horizon-blend': [
-              'interpolate',
-              ['exponential', 1.2],
-              ['zoom'],
-              5,
-              0.02,
-              7,
-              0.08
-            ],
-            'star-intensity': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              5,
-              0.35,
-              6,
-              0
-            ]
-          });
+          if (imports[0].data.name === 'Mapbox Standard Satellite') {
+            color = DEFAULT_SATELLITE_FEATURE_COLOR;
+          }
         }
 
         context.map.addSource('map-data', {
@@ -359,7 +329,8 @@ module.exports = function (context, readonly) {
           source: 'map-data',
           paint: {
             'fill-color': ['coalesce', ['get', 'fill'], color],
-            'fill-opacity': ['coalesce', ['get', 'fill-opacity'], 0.3]
+            'fill-opacity': ['coalesce', ['get', 'fill-opacity'], 0.3],
+            'fill-emissive-strength': 1
           },
           filter: ['==', ['geometry-type'], 'Polygon']
         });
@@ -371,7 +342,8 @@ module.exports = function (context, readonly) {
           paint: {
             'line-color': ['coalesce', ['get', 'stroke'], color],
             'line-width': ['coalesce', ['get', 'stroke-width'], 2],
-            'line-opacity': ['coalesce', ['get', 'stroke-opacity'], 1]
+            'line-opacity': ['coalesce', ['get', 'stroke-opacity'], 1],
+            'line-emissive-strength': 1
           },
           filter: ['==', ['geometry-type'], 'Polygon']
         });
@@ -383,12 +355,32 @@ module.exports = function (context, readonly) {
           paint: {
             'line-color': ['coalesce', ['get', 'stroke'], color],
             'line-width': ['coalesce', ['get', 'stroke-width'], 2],
-            'line-opacity': ['coalesce', ['get', 'stroke-opacity'], 1]
+            'line-opacity': ['coalesce', ['get', 'stroke-opacity'], 1],
+            'line-emissive-strength': 1
           },
           filter: ['==', ['geometry-type'], 'LineString']
         });
 
         geojsonToLayer(context, writable);
+
+        // Initialize 3D buildings state from localStorage after style is loaded
+        // This can't live in `ui/3d-buildings-toggle.js because we have to wait for the map style to be loaded
+        const hasKey = context.storage.get('3DBuildings') !== undefined;
+        const active3DBuildings = hasKey
+          ? context.storage.get('3DBuildings')
+          : DEFAULT_3D_BUILDINGS;
+        if (context.map.getConfigProperty) {
+          context.map.setConfigProperty(
+            'basemap',
+            'show3dObjects',
+            active3DBuildings
+          );
+        }
+        // Update the UI to reflect the active state
+        d3.selectAll('.toggle-3D button').classed('active', function () {
+          const { value } = d3.select(this).datum();
+          return value === active3DBuildings;
+        });
 
         context.data.set({
           mapStyleLoaded: false
@@ -397,14 +389,32 @@ module.exports = function (context, readonly) {
     });
 
     // only show projection toggle on zoom < 6
-    context.map.on('zoomend', () => {
+    // only show 3d Buildings toggle on Zoom > 14
+    function updateTogglesByZoom() {
       const zoom = context.map.getZoom();
+      const projectionSwitch = d3.select('.projection-switch');
+      const toggle3D = d3.select('.toggle-3D');
+
+      // Get current style to check if 3D buildings should be hidden
+      const currentStyle = context.storage.get('style') || DEFAULT_STYLE;
+      const shouldHide3DForStyle =
+        currentStyle === 'OSM' ||
+        currentStyle === 'Outdoors' ||
+        currentStyle === 'Standard Satellite';
+
       if (zoom < 6) {
-        d3.select('.projection-switch').style('opacity', 1);
+        projectionSwitch.style('opacity', 1);
+        toggle3D.classed('hidden', true);
+      } else if (zoom > 6 && zoom < 14) {
+        projectionSwitch.style('opacity', 0);
+        toggle3D.classed('hidden', true);
       } else {
-        d3.select('.projection-switch').style('opacity', 0);
+        // Hide 3D toggle for OSM and Outdoors styles, regardless of zoom
+        toggle3D.classed('hidden', shouldHide3DForStyle);
       }
-    });
+    }
+    context.map.on('load', () => updateTogglesByZoom());
+    context.map.on('zoomend', () => updateTogglesByZoom());
 
     const maybeSetCursorToPointer = () => {
       if (context.Draw.getMode() === 'simple_select') {
