@@ -96,10 +96,25 @@ module.exports = function (context) {
       cells
         .select('input')
         .property('checked', (rowIndex) => isFeatureVisible(features[rowIndex]))
+        .on('mousedown', function () {
+          this.__exclusiveClick = d3.event && d3.event.metaKey;
+        })
         .on('change', function (rowIndex) {
+          const isCommandClick = this.__exclusiveClick;
+          this.__exclusiveClick = false;
           const feature = features[rowIndex];
           if (!feature) return;
-          if (this.checked) {
+          if (isCommandClick) {
+            this.checked = true;
+            features.forEach((item, index) => {
+              if (!item) return;
+              if (index === rowIndex) {
+                delete item._visible;
+              } else {
+                item._visible = false;
+              }
+            });
+          } else if (this.checked) {
             delete feature._visible;
           } else {
             feature._visible = false;
