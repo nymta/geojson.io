@@ -14,11 +14,11 @@ const {
 
 const markers = [];
 
-makiNames = require('@mapbox/maki/layouts/all.json');
-let makiOptions = '';
+temakiNames = Object.keys(require('@rapideditor/temaki/data/icons.json'));
+let temakiOptions = '';
 
-for (let i = 0; i < makiNames.length; i++) {
-  makiOptions += '<option value="' + makiNames[i] + '">';
+for (let i = 0; i < temakiNames.length; i++) {
+  temakiOptions += '<option value="' + temakiNames[i] + '">';
 }
 
 const addIds = (geojson) => {
@@ -276,7 +276,7 @@ function bindPopup(e, context, writable) {
         '"' +
         (!writable ? ' readonly' : '') +
         ' /><datalist id="marker-symbol">' +
-        makiOptions +
+        temakiOptions +
         '</datalist></td></tr>';
     } else if (key === 'stroke-width' && writable) {
       table +=

@@ -67,7 +67,7 @@ export default {
           dest: './dist'
         },
         {
-          src: 'node_modules/@mapbox/maki/icons',
+          src: 'node_modules/@rapideditor/temaki/icons',
           dest: './dist'
         },
         {
