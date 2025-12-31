@@ -162,9 +162,15 @@ module.exports = function (context) {
 
     context.dispatch.on('change.json', (event) => {
       if (event.source !== 'json') {
-        const scrollInfo = editor.getScrollInfo();
         editor.setValue(JSON.stringify(context.data.get('map'), null, 2));
-        editor.scrollTo(scrollInfo.left, scrollInfo.top);
+        // If the data context (geojson) has no features then focus and select all
+        if (
+          !context.data.get('map').features ||
+          context.data.get('map').features.length === 0
+        ) {
+          editor.focus();
+          editor.execCommand('selectAll');
+        }
       }
     });
 
