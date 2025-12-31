@@ -52,8 +52,25 @@ class TrashControl {
   }
 }
 
+class VertexViewControl {
+  onAdd(map) {
+    this.map = map;
+    this._container = document.createElement('div');
+    this._container.className =
+      'mapboxgl-ctrl-group mapboxgl-ctrl vertex-view-control hidden';
+
+    this._container.innerHTML = `
+            <button class="mapbox-gl-draw_ctrl-draw-btn mapbox-gl-draw_vertex-view" title="View vertices (read-only)">
+            </button>
+          `;
+
+    return this._container;
+  }
+}
+
 module.exports = {
   EditControl,
   SaveCancelControl,
-  TrashControl
+  TrashControl,
+  VertexViewControl
 };

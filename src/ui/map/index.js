@@ -10,7 +10,12 @@ const DrawRectangle = require('../draw/rectangle');
 const DrawCircle = require('../draw/circle');
 const SimpleSelect = require('../draw/simple_select');
 const ExtendDrawBar = require('../draw/extend_draw_bar');
-const { EditControl, SaveCancelControl, TrashControl } = require('./controls');
+const {
+  EditControl,
+  SaveCancelControl,
+  TrashControl,
+  VertexViewControl
+} = require('./controls');
 const { geojsonToLayer, bindPopup } = require('./util');
 const styles = require('./styles');
 const {
@@ -26,6 +31,7 @@ const drawStyles = require('../draw/styles');
 let writable = false;
 let drawing = false;
 let editing = false;
+let viewingVertices = false;
 
 const dummyGeojson = {
   type: 'FeatureCollection',
@@ -81,9 +87,10 @@ module.exports = function (context, readonly) {
   d3.select(document).call(keybinding);
 
   function maybeShowEditControl() {
-    // if there are features, show the edit button
+    // if there are features, show the edit button and vertex view button
     if (context.data.hasFeatures()) {
       d3.select('.edit-control').style('display', 'block');
+      d3.select('.vertex-view-control').style('display', 'block');
     }
   }
 
@@ -198,6 +205,9 @@ module.exports = function (context, readonly) {
       const editControl = new EditControl();
       context.map.addControl(editControl, 'top-right');
 
+      const vertexViewControl = new VertexViewControl();
+      context.map.addControl(vertexViewControl, 'top-right');
+
       const saveCancelControl = new SaveCancelControl();
 
       context.map.addControl(saveCancelControl, 'top-right');
@@ -233,7 +243,7 @@ module.exports = function (context, readonly) {
         d3.select('.save-cancel-control').style('display', 'none');
         d3.select('.trash-control').style('display', 'none');
 
-        // show the edit button and draw tools
+        // show the edit button, vertex view button, and draw tools
         maybeShowEditControl();
         d3.select('.mapboxgl-ctrl-group:nth-child(3)').style(
           'display',
@@ -269,8 +279,25 @@ module.exports = function (context, readonly) {
       // enter edit mode
       d3.selectAll('.mapbox-gl-draw_edit').on('click', () => {
         editing = true;
+
+        // Exit vertex view mode if active
+        if (viewingVertices) {
+          viewingVertices = false;
+          d3.select('.mapbox-gl-draw_vertex-view').classed('active', false);
+          if (context.map.getLayer('vertex-view-fill')) {
+            context.map.removeLayer('vertex-view-fill');
+          }
+          if (context.map.getLayer('vertex-view-border')) {
+            context.map.removeLayer('vertex-view-border');
+          }
+          if (context.map.getSource('vertex-view-data')) {
+            context.map.removeSource('vertex-view-data');
+          }
+        }
+
         // hide the edit button and draw tools
         d3.select('.edit-control').style('display', 'none');
+        d3.select('.vertex-view-control').style('display', 'none');
         d3.select('.mapboxgl-ctrl-group:nth-child(3)').style('display', 'none');
 
         // show the save/cancel control and the delete control
@@ -299,6 +326,147 @@ module.exports = function (context, readonly) {
         context.Draw.changeMode('simple_select', {
           featureIds
         });
+      });
+
+      // Generate vertex point features from all lines and polygons
+      const generateVertexFeatures = () => {
+        const geojson = context.data.get('map');
+        if (!geojson || !geojson.features) return [];
+
+        const vertexFeatures = [];
+
+        geojson.features.forEach((feature) => {
+          if (!feature.geometry) return;
+
+          const { type, coordinates } = feature.geometry;
+          const props = feature.properties || {};
+
+          // Get the stroke/fill color for this feature
+          const color =
+            props.stroke || props.fill || DEFAULT_DARK_FEATURE_COLOR;
+
+          // Helper to add vertex points from a coordinate array
+          const addVertices = (coords, isRing = false) => {
+            const len = coords.length;
+            coords.forEach((coord, index) => {
+              // For rings (polygons), last coord equals first, so skip it
+              if (isRing && index === len - 1) return;
+
+              // Determine vertex type: polygons are all 'middle', lines have start/end
+              let vertexType = 'middle';
+              if (!isRing) {
+                if (index === 0) {
+                  vertexType = 'start';
+                } else if (index === len - 1) {
+                  vertexType = 'end';
+                }
+              }
+
+              vertexFeatures.push({
+                type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: coord
+                },
+                properties: {
+                  vertexType,
+                  color
+                }
+              });
+            });
+          };
+
+          if (type === 'LineString') {
+            addVertices(coordinates, false);
+          } else if (type === 'MultiLineString') {
+            coordinates.forEach((line) => addVertices(line, false));
+          } else if (type === 'Polygon') {
+            coordinates.forEach((ring) => addVertices(ring, true));
+          } else if (type === 'MultiPolygon') {
+            coordinates.forEach((polygon) => {
+              polygon.forEach((ring) => addVertices(ring, true));
+            });
+          }
+        });
+
+        return vertexFeatures;
+      };
+
+      // Add vertex visualization layers
+      const addVertexLayers = () => {
+        const vertexFeatures = generateVertexFeatures();
+
+        const vertexGeojson = {
+          type: 'FeatureCollection',
+          features: vertexFeatures
+        };
+
+        // Add source for vertices
+        context.map.addSource('vertex-view-data', {
+          type: 'geojson',
+          data: vertexGeojson
+        });
+
+        // Add layer for vertex border
+        // Start: same as fill (solid color), End: white, Middle: white
+        context.map.addLayer({
+          id: 'vertex-view-border',
+          type: 'circle',
+          source: 'vertex-view-data',
+          paint: {
+            'circle-radius': 6,
+            'circle-color': [
+              'case',
+              ['==', ['get', 'vertexType'], 'start'],
+              ['get', 'color'], // start: border matches fill (solid color)
+              '#ffffff' // middle and end: white border
+            ]
+          }
+        });
+
+        // Add layer for vertex fill
+        // Start: feature color, End: white, Middle: feature color
+        context.map.addLayer({
+          id: 'vertex-view-fill',
+          type: 'circle',
+          source: 'vertex-view-data',
+          paint: {
+            'circle-radius': 4,
+            'circle-color': [
+              'case',
+              ['==', ['get', 'vertexType'], 'end'],
+              '#ffffff', // end: white fill
+              ['get', 'color'] // start and middle: feature color
+            ]
+          }
+        });
+      };
+
+      // Remove vertex visualization layers
+      const removeVertexLayers = () => {
+        if (context.map.getLayer('vertex-view-fill')) {
+          context.map.removeLayer('vertex-view-fill');
+        }
+        if (context.map.getLayer('vertex-view-border')) {
+          context.map.removeLayer('vertex-view-border');
+        }
+        if (context.map.getSource('vertex-view-data')) {
+          context.map.removeSource('vertex-view-data');
+        }
+      };
+
+      // Toggle vertex view mode
+      d3.selectAll('.mapbox-gl-draw_vertex-view').on('click', function () {
+        viewingVertices = !viewingVertices;
+
+        const button = d3.select(this);
+        button.classed('active', viewingVertices);
+
+        if (viewingVertices) {
+          addVertexLayers();
+        } else {
+          removeVertexLayers();
+        }
       });
     }
 
@@ -527,6 +695,69 @@ module.exports = function (context, readonly) {
       maybeShowEditControl();
       if (obj.map) {
         geojsonToLayer(context, writable);
+
+        // Update vertex view layers if active
+        if (viewingVertices && context.map.getSource('vertex-view-data')) {
+          const geojson = context.data.get('map');
+          if (geojson && geojson.features) {
+            const vertexFeatures = [];
+
+            geojson.features.forEach((feature) => {
+              if (!feature.geometry) return;
+
+              const { type, coordinates } = feature.geometry;
+              const props = feature.properties || {};
+              const color =
+                props.stroke || props.fill || DEFAULT_DARK_FEATURE_COLOR;
+
+              const addVertices = (coords, isRing = false) => {
+                const len = coords.length;
+                coords.forEach((coord, index) => {
+                  if (isRing && index === len - 1) return;
+
+                  // Determine vertex type: polygons are all 'middle', lines have start/end
+                  let vertexType = 'middle';
+                  if (!isRing) {
+                    if (index === 0) {
+                      vertexType = 'start';
+                    } else if (index === len - 1) {
+                      vertexType = 'end';
+                    }
+                  }
+
+                  vertexFeatures.push({
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Point',
+                      coordinates: coord
+                    },
+                    properties: {
+                      vertexType,
+                      color
+                    }
+                  });
+                });
+              };
+
+              if (type === 'LineString') {
+                addVertices(coordinates, false);
+              } else if (type === 'MultiLineString') {
+                coordinates.forEach((line) => addVertices(line, false));
+              } else if (type === 'Polygon') {
+                coordinates.forEach((ring) => addVertices(ring, true));
+              } else if (type === 'MultiPolygon') {
+                coordinates.forEach((polygon) => {
+                  polygon.forEach((ring) => addVertices(ring, true));
+                });
+              }
+            });
+
+            context.map.getSource('vertex-view-data').setData({
+              type: 'FeatureCollection',
+              features: vertexFeatures
+            });
+          }
+        }
       }
     });
   }
