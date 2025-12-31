@@ -38,7 +38,7 @@ module.exports = function (context) {
           const toggle3D = d3.select('.toggle-3D');
           const shouldHide3DForStyle =
             title === 'OSM' ||
-            title === 'Outdoors' ||
+            title === 'MTA light' ||
             title === 'Standard Satellite';
           toggle3D.classed('hidden', shouldHide3DForStyle);
         }, 100);

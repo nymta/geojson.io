@@ -89,7 +89,7 @@ module.exports = function (context, readonly) {
 
   function map() {
     mapboxgl.accessToken =
-      'pk.eyJ1Ijoic3ZjLW9rdGEtbWFwYm94LXN0YWZmLWFjY2VzcyIsImEiOiJjbG5sMnExa3kxNTJtMmtsODJld24yNGJlIn0.RQ4CHchAYPJQZSiUJ0O3VQ';
+      'pk.eyJ1Ijoid2Zpc2hlciIsImEiOiJjanJsYTVyOWMwNmY3NDNuM3lrdGNhdHB5In0.mUVzIPzlPqp4waXsP1s6PQ';
 
     mapboxgl.setRTLTextPlugin(
       'https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js',
@@ -399,7 +399,7 @@ module.exports = function (context, readonly) {
       const currentStyle = context.storage.get('style') || DEFAULT_STYLE;
       const shouldHide3DForStyle =
         currentStyle === 'OSM' ||
-        currentStyle === 'Outdoors' ||
+        currentStyle === 'MTA light' ||
         currentStyle === 'Standard Satellite';
 
       if (zoom < 6) {
@@ -409,7 +409,7 @@ module.exports = function (context, readonly) {
         projectionSwitch.style('opacity', 0);
         toggle3D.classed('hidden', true);
       } else {
-        // Hide 3D toggle for OSM and Outdoors styles, regardless of zoom
+        // Hide 3D toggle for OSM and MTA light styles, regardless of zoom
         toggle3D.classed('hidden', shouldHide3DForStyle);
       }
     }

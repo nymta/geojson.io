@@ -27,8 +27,8 @@ module.exports = [
     }
   },
   {
-    title: 'Outdoors',
-    style: 'mapbox://styles/mapbox/outdoors-v12'
+    title: 'MTA light',
+    style: 'mapbox://styles/wfisher/cmjt9n67e000101rd80g24e01'
   },
   {
     title: 'OSM',
