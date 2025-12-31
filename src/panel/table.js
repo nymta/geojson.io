@@ -3,6 +3,7 @@ const metatable = require('d3-metatable')(d3),
 
 module.exports = function (context) {
   let panelSelection = null;
+  let lastCheckedRowIndex = null;
 
   function render(selection) {
     panelSelection = selection;
@@ -119,10 +120,13 @@ module.exports = function (context) {
         .property('checked', (rowIndex) => isFeatureVisible(features[rowIndex]))
         .on('mousedown', function () {
           this.__exclusiveClick = d3.event && d3.event.metaKey;
+          this.__shiftClick = d3.event && d3.event.shiftKey;
         })
         .on('change', function (rowIndex) {
           const isCommandClick = this.__exclusiveClick;
+          const isShiftClick = this.__shiftClick;
           this.__exclusiveClick = false;
+          this.__shiftClick = false;
           const feature = features[rowIndex];
           if (!feature) return;
           if (isCommandClick) {
@@ -135,8 +139,22 @@ module.exports = function (context) {
                 item._visible = false;
               }
             });
+            lastCheckedRowIndex = rowIndex;
           } else if (this.checked) {
-            delete feature._visible;
+            // Turning ON
+            if (isShiftClick && lastCheckedRowIndex !== null) {
+              // Enable all rows between lastCheckedRowIndex and rowIndex
+              const start = Math.min(lastCheckedRowIndex, rowIndex);
+              const end = Math.max(lastCheckedRowIndex, rowIndex);
+              for (let i = start; i <= end; i++) {
+                if (features[i]) {
+                  delete features[i]._visible;
+                }
+              }
+            } else {
+              delete feature._visible;
+            }
+            lastCheckedRowIndex = rowIndex;
           } else {
             feature._visible = false;
           }
