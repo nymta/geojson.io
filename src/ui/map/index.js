@@ -108,8 +108,8 @@ module.exports = function (context, readonly) {
       container: 'map',
       style,
       ...(config ? { config } : {}),
-      center: [20, 0],
-      zoom: 2,
+      center: [-73.9855, 40.758], // Times Square
+      zoom: 13, // Shows the five boroughs
       projection,
       hash: 'map'
     });
