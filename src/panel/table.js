@@ -63,20 +63,41 @@ module.exports = function (context) {
       const table = selection.select('table');
       if (table.empty()) return;
 
+      const allVisible = features.every(isFeatureVisible);
+
       const header = table
         .select('thead')
         .select('tr')
         .selectAll('th.feature-visibility')
         .data([null]);
 
-      header
+      const headerEnter = header
         .enter()
         .insert('th', ':first-child')
-        .attr('class', 'feature-visibility')
-        .append('span')
-        .text('map');
+        .attr('class', 'feature-visibility');
+
+      headerEnter
+        .append('input')
+        .attr('type', 'checkbox')
+        .attr('title', 'Toggle all features on map');
 
       header.exit().remove();
+
+      table
+        .select('thead th.feature-visibility input')
+        .property('checked', allVisible)
+        .on('change', function () {
+          const shouldShow = this.checked;
+          features.forEach((feature) => {
+            if (!feature) return;
+            if (shouldShow) {
+              delete feature._visible;
+            } else {
+              feature._visible = false;
+            }
+          });
+          context.data.set({ map: geojson }, 'table-visibility');
+        });
 
       const rows = table.select('tbody').selectAll('tr');
       const cells = rows.selectAll('td.feature-visibility').data((d, i) => [i]);
