@@ -1,5 +1,5 @@
 const metatable = require('d3-metatable')(d3),
-  smartZoom = require('../lib/smartzoom.js');
+  quickZoom = require('../lib/quickzoom.js');
 
 module.exports = function (context) {
   let panelSelection = null;
@@ -42,7 +42,7 @@ module.exports = function (context) {
             .on('rowfocus', (row, i) => {
               const geojson = context.data.get('map');
               if (!geojson.geometry) {
-                smartZoom(context.map, geojson.features[i]);
+                quickZoom(context.map, geojson.features[i]);
               }
             })
         );
