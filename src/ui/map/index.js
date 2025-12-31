@@ -216,6 +216,11 @@ module.exports = function (context, readonly) {
           'visible'
         );
         context.map.setLayoutProperty('map-data-line', 'visibility', 'visible');
+        context.map.setLayoutProperty(
+          'map-data-line-hitbox',
+          'visibility',
+          'visible'
+        );
 
         // show markers
         d3.selectAll('.mapboxgl-marker').style('display', 'block');
@@ -280,6 +285,11 @@ module.exports = function (context, readonly) {
           'none'
         );
         context.map.setLayoutProperty('map-data-line', 'visibility', 'none');
+        context.map.setLayoutProperty(
+          'map-data-line-hitbox',
+          'visibility',
+          'none'
+        );
 
         // hide markers
         d3.selectAll('.mapboxgl-marker').style('display', 'none');
@@ -346,6 +356,19 @@ module.exports = function (context, readonly) {
             'line-emissive-strength': 1
           },
           filter: ['==', ['geometry-type'], 'Polygon']
+        });
+
+        // Invisible hitbox layer with larger width for easier hover/click detection
+        context.map.addLayer({
+          id: 'map-data-line-hitbox',
+          type: 'line',
+          source: 'map-data',
+          paint: {
+            'line-color': '#000',
+            'line-width': 20,
+            'line-opacity': 0
+          },
+          filter: ['==', ['geometry-type'], 'LineString']
         });
 
         context.map.addLayer({
@@ -444,11 +467,19 @@ module.exports = function (context, readonly) {
       });
       context.map.on('mouseenter', 'map-data-fill', maybeSetCursorToPointer);
       context.map.on('mouseleave', 'map-data-fill', maybeResetCursor);
-      context.map.on('mouseenter', 'map-data-line', maybeSetCursorToPointer);
-      context.map.on('mouseleave', 'map-data-line', maybeResetCursor);
+      context.map.on(
+        'mouseenter',
+        'map-data-line-hitbox',
+        maybeSetCursorToPointer
+      );
+      context.map.on('mouseleave', 'map-data-line-hitbox', maybeResetCursor);
 
       context.map.on('click', 'map-data-fill', handleLinestringOrPolygonClick);
-      context.map.on('click', 'map-data-line', handleLinestringOrPolygonClick);
+      context.map.on(
+        'click',
+        'map-data-line-hitbox',
+        handleLinestringOrPolygonClick
+      );
       context.map.on(
         'touchstart',
         'map-data-fill',
@@ -456,7 +487,7 @@ module.exports = function (context, readonly) {
       );
       context.map.on(
         'touchstart',
-        'map-data-line',
+        'map-data-line-hitbox',
         handleLinestringOrPolygonClick
       );
     });
