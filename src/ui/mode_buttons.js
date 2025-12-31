@@ -1,6 +1,5 @@
 const table = require('../panel/table'),
-  json = require('../panel/json'),
-  help = require('../panel/help');
+  json = require('../panel/json');
 
 module.exports = function (context, pane) {
   return function (selection) {
@@ -18,12 +17,6 @@ module.exports = function (context, pane) {
         title: ' Table',
         alt: 'Edit feature properties in a table',
         behavior: table
-      },
-      {
-        icon: 'question',
-        title: ' Help',
-        alt: 'Help',
-        behavior: help
       }
     ];
 
