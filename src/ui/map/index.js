@@ -338,6 +338,7 @@ module.exports = function (context, readonly) {
 
         geojson.features.forEach((feature) => {
           if (!feature.geometry) return;
+          if (feature._visible === false) return;
 
           const { type, coordinates } = feature.geometry;
           const props = feature.properties || {};
@@ -709,6 +710,7 @@ module.exports = function (context, readonly) {
 
             geojson.features.forEach((feature) => {
               if (!feature.geometry) return;
+              if (feature._visible === false) return;
 
               const { type, coordinates } = feature.geometry;
               const props = feature.properties || {};
