@@ -18,6 +18,7 @@ const {
 } = require('./controls');
 const { geojsonToLayer, bindPopup } = require('./util');
 const styles = require('./styles');
+const initStreetView = require('../street-view');
 const {
   DEFAULT_STYLE,
   DEFAULT_PROJECTION,
@@ -633,6 +634,10 @@ module.exports = function (context, readonly) {
       context.data.set({
         mapStyleLoaded: true
       });
+
+      // Initialize Street View mode (option-click to open Google Street View)
+      initStreetView(context);
+
       context.map.on('mouseenter', 'map-data-fill', maybeSetCursorToPointer);
       context.map.on('mouseleave', 'map-data-fill', maybeResetCursor);
       context.map.on(
