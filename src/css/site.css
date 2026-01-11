@@ -111,6 +111,24 @@ button {
   color: #fff;
 }
 
+.layer-switch .nearmap-date {
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: #222;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: rgba(0, 0, 0, 0.15) 0px 1px 2px;
+}
+
+.layer-switch .nearmap-date.hidden {
+  display: none;
+}
+
 .toggle-3D.hidden {
   opacity: 0;
   pointer-events: none;
