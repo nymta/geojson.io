@@ -28,6 +28,28 @@ function ui(context) {
       .call(projection_switch(context))
       .call(toggle_3d(context));
 
+    // Line position slider (hidden by default, shown when clicking a LineString)
+    const sliderContainer = map
+      .append('div')
+      .attr('id', 'geojsonio-line-position-slider')
+      .attr('class', 'line-position-slider');
+
+    const sliderPanel = sliderContainer.append('div').attr('class', 'panel');
+
+    sliderPanel.append('div').attr('class', 'label').text('Along line');
+
+    sliderPanel
+      .append('input')
+      .attr('type', 'range')
+      .attr('class', 'slider')
+      .attr('min', '0')
+      .attr('max', '1')
+      .attr('step', '0.001')
+      .attr('value', '0')
+      .attr('aria-label', 'Position along line');
+
+    sliderPanel.append('div').attr('class', 'readout').text('0%');
+
     // After context.map() is created and available, add the 3D toggle UI
     // setTimeout(() => {
     //   const mapInstance = typeof context.map === 'function' ? context.map() : context.map;

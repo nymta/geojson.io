@@ -5,6 +5,7 @@ const area = require('@turf/area').default;
 
 const popup = require('../../lib/popup');
 const ClickableMarker = require('./clickable_marker');
+const createLinePositionSlider = require('./line_position_slider');
 const zoomextent = require('../../lib/zoomextent');
 const {
   DEFAULT_DARK_FEATURE_COLOR,
@@ -13,8 +14,9 @@ const {
 } = require('../../constants');
 
 const markers = [];
+let activeLinePositionSlider = null;
 
-temakiNames = Object.keys(require('@rapideditor/temaki/data/icons.json'));
+const temakiNames = Object.keys(require('@rapideditor/temaki/data/icons.json'));
 let temakiOptions = '';
 
 for (let i = 0; i < temakiNames.length; i++) {
@@ -207,6 +209,12 @@ function geojsonToLayer(context, writable) {
 }
 
 function bindPopup(e, context, writable) {
+  // Destroy any existing line position slider before opening a new popup.
+  if (activeLinePositionSlider) {
+    activeLinePositionSlider.destroy();
+    activeLinePositionSlider = null;
+  }
+
   // build the popup using the actual feature from the data store,
   // not the feature returned from queryRenderedFeatures()
   const { id } = e.features[0];
@@ -459,7 +467,7 @@ function bindPopup(e, context, writable) {
     right: [-25, -20]
   };
 
-  new mapboxgl.Popup({
+  const mbPopup = new mapboxgl.Popup({
     closeButton: false,
     maxWidth: '251px',
     offset: popupOffsets,
@@ -467,11 +475,33 @@ function bindPopup(e, context, writable) {
   })
     .setLngLat(e.lngLat)
     .setHTML(content)
-    .on('open', (e) => {
+    .on('open', (ev) => {
       // bind popup event listeners
-      popup(context)(e, feature.id);
+      popup(context)(ev, feature.id);
     })
     .addTo(context.map);
+
+  // Show line position slider for LineString/MultiLineString features.
+  if (
+    feature &&
+    feature.geometry &&
+    (feature.geometry.type === 'LineString' ||
+      feature.geometry.type === 'MultiLineString')
+  ) {
+    const slider = createLinePositionSlider({
+      map: context.map,
+      feature,
+      clickLngLat: e.lngLat
+    });
+    activeLinePositionSlider = slider;
+
+    mbPopup.on('close', () => {
+      slider.destroy();
+      if (activeLinePositionSlider === slider) {
+        activeLinePositionSlider = null;
+      }
+    });
+  }
 }
 
 module.exports = {
