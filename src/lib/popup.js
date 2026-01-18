@@ -1,3 +1,5 @@
+const temakiNames = Object.keys(require('@rapideditor/temaki/data/icons.json'));
+
 module.exports = function (context) {
   return function (e, id) {
     const sel = d3.select(e.target._content);
