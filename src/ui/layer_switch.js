@@ -177,17 +177,6 @@ module.exports = function (context) {
           mapStyleLoaded: true
         });
 
-        // Update toggle visibility based on new style
-        setTimeout(() => {
-          const toggle3D = d3.select('.toggle-3D');
-          const shouldHide3DForStyle =
-            title === 'OSM' ||
-            title === 'MTA light' ||
-            title === 'Standard Satellite' ||
-            title === 'Nearmap';
-          toggle3D.classed('hidden', shouldHide3DForStyle);
-        }, 100);
-
         if (title === 'Nearmap') {
           enableNearmapDateUi();
         } else {
@@ -207,9 +196,9 @@ module.exports = function (context) {
 
     const activeStyle = context.storage.get('style') || DEFAULT_STYLE;
 
-    // Check if activeStyle exists in styles array, default to 'Standard' if not
+    // Check if activeStyle exists in styles array, default to 'MTA light' if not
     const styleExists = styles.some(({ title }) => title === activeStyle);
-    const correctedStyle = styleExists ? activeStyle : 'Standard';
+    const correctedStyle = styleExists ? activeStyle : 'MTA light';
 
     // Update localStorage if we had to correct the style
     if (!styleExists) {

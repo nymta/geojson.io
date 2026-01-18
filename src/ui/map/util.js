@@ -99,11 +99,11 @@ const addMarkers = (geojson, context, writable) => {
 
     // Adjust the feature color for certain styles to help visibility
     switch (activeStyle) {
-      case 'Standard Satellite':
+      case 'Mapbox satellite':
         defaultColor = DEFAULT_SATELLITE_FEATURE_COLOR;
         defaultSymbolColor = '#fff';
         break;
-      case 'Standard Dark':
+      case 'Mapbox dark':
         defaultColor = DEFAULT_LIGHT_FEATURE_COLOR;
         defaultSymbolColor = DEFAULT_DARK_FEATURE_COLOR;
         break;

@@ -105,8 +105,7 @@ button {
 
 .top button.active,
 .layer-switch button.active,
-.projection-switch button.active,
-.toggle-3D button.active {
+.projection-switch button.active {
   background: #34495e;
   color: #fff;
 }
@@ -127,11 +126,6 @@ button {
 
 .layer-switch .nearmap-date.hidden {
   display: none;
-}
-
-.toggle-3D.hidden {
-  opacity: 0;
-  pointer-events: none;
 }
 
 button.major {

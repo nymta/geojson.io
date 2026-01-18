@@ -24,8 +24,7 @@ const {
   DEFAULT_PROJECTION,
   DEFAULT_DARK_FEATURE_COLOR,
   DEFAULT_LIGHT_FEATURE_COLOR,
-  DEFAULT_SATELLITE_FEATURE_COLOR,
-  DEFAULT_3D_BUILDINGS
+  DEFAULT_SATELLITE_FEATURE_COLOR
 } = require('../../constants');
 const drawStyles = require('../draw/styles');
 
@@ -110,7 +109,7 @@ module.exports = function (context, readonly) {
 
     const foundStyle = styles.find((d) => d.title === activeStyle);
     const { style, config } =
-      foundStyle || styles.find((d) => d.title === 'Standard');
+      foundStyle || styles.find((d) => d.title === 'MTA light');
 
     context.map = new mapboxgl.Map({
       container: 'map',
@@ -488,7 +487,7 @@ module.exports = function (context, readonly) {
         }
 
         if (config) {
-          // check for Standard Dark or Standard Satellite, these two should use lighter feature colors
+          // check for Mapbox dark or Mapbox satellite, these two should use lighter feature colors
           if (config.theme === 'monochrome' && config.lightPreset === 'night') {
             color = DEFAULT_LIGHT_FEATURE_COLOR;
           }
@@ -556,24 +555,10 @@ module.exports = function (context, readonly) {
 
         geojsonToLayer(context, writable);
 
-        // Initialize 3D buildings state from localStorage after style is loaded
-        // This can't live in `ui/3d-buildings-toggle.js because we have to wait for the map style to be loaded
-        const hasKey = context.storage.get('3DBuildings') !== undefined;
-        const active3DBuildings = hasKey
-          ? context.storage.get('3DBuildings')
-          : DEFAULT_3D_BUILDINGS;
+        // 3D buildings feature is disabled - always set to false
         if (context.map.getConfigProperty) {
-          context.map.setConfigProperty(
-            'basemap',
-            'show3dObjects',
-            active3DBuildings
-          );
+          context.map.setConfigProperty('basemap', 'show3dObjects', false);
         }
-        // Update the UI to reflect the active state
-        d3.selectAll('.toggle-3D button').classed('active', function () {
-          const { value } = d3.select(this).datum();
-          return value === active3DBuildings;
-        });
 
         context.data.set({
           mapStyleLoaded: false
@@ -582,28 +567,14 @@ module.exports = function (context, readonly) {
     });
 
     // only show projection toggle on zoom < 6
-    // only show 3d Buildings toggle on Zoom > 14
     function updateTogglesByZoom() {
       const zoom = context.map.getZoom();
       const projectionSwitch = d3.select('.projection-switch');
-      const toggle3D = d3.select('.toggle-3D');
-
-      // Get current style to check if 3D buildings should be hidden
-      const currentStyle = context.storage.get('style') || DEFAULT_STYLE;
-      const shouldHide3DForStyle =
-        currentStyle === 'OSM' ||
-        currentStyle === 'MTA light' ||
-        currentStyle === 'Standard Satellite';
 
       if (zoom < 6) {
         projectionSwitch.style('opacity', 1);
-        toggle3D.classed('hidden', true);
-      } else if (zoom > 6 && zoom < 14) {
-        projectionSwitch.style('opacity', 0);
-        toggle3D.classed('hidden', true);
       } else {
-        // Hide 3D toggle for OSM and MTA light styles, regardless of zoom
-        toggle3D.classed('hidden', shouldHide3DForStyle);
+        projectionSwitch.style('opacity', 0);
       }
     }
     context.map.on('load', () => updateTogglesByZoom());

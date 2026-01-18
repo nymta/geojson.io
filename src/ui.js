@@ -3,8 +3,7 @@ const buttons = require('./ui/mode_buttons'),
   dnd = require('./ui/dnd'),
   // userUi = require('./ui/user'),
   layer_switch = require('./ui/layer_switch'),
-  projection_switch = require('./ui/projection_switch'),
-  toggle_3d = require('./ui/3d-buildings-toggle');
+  projection_switch = require('./ui/projection_switch');
 
 module.exports = ui;
 
@@ -25,8 +24,7 @@ function ui(context) {
         'map grow shrink-0 top-0 bottom-0 left-0 basis-0 transition-all duration-300'
       )
       .call(layer_switch(context))
-      .call(projection_switch(context))
-      .call(toggle_3d(context));
+      .call(projection_switch(context));
 
     // Line position slider (hidden by default, shown when clicking a LineString)
     const sliderContainer = map
@@ -49,16 +47,6 @@ function ui(context) {
       .attr('aria-label', 'Position along line');
 
     sliderPanel.append('div').attr('class', 'readout').text('0%');
-
-    // After context.map() is created and available, add the 3D toggle UI
-    // setTimeout(() => {
-    //   const mapInstance = typeof context.map === 'function' ? context.map() : context.map;
-    //   if (mapInstance && typeof mapInstance.on === 'function') {
-    //     mapInstance.on('load', () => {
-    //       d3.select('#map').call(toggle_3d(context));
-    //     });
-    //   }
-    // }, 0);
 
     // sidebar handle
     map
