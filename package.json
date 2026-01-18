@@ -18,8 +18,6 @@
     "@placemarkio/tokml": "^0.3.3",
     "@popperjs/core": "^2.11.6",
     "@rapideditor/temaki": "^5.11.0",
-    "@sentry/browser": "^7.20.0",
-    "@sentry/tracing": "^7.20.0",
     "@tmcw/togeojson": "5.2.2",
     "@turf/area": "^6.5.0",
     "@turf/bbox": "^6.5.0",
