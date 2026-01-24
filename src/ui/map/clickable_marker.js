@@ -1,6 +1,7 @@
 // extend mapboxGL Marker so we can pass in an onClick handler
 const mapboxgl = require('mapbox-gl');
-const temakiNames = Object.keys(require('@rapideditor/temaki/data/icons.json'));
+const { icons: phosphorIcons } = require('@phosphor-icons/core');
+const phosphorNames = phosphorIcons.map((icon) => icon.name);
 
 class ClickableMarker extends mapboxgl.Marker {
   constructor(options, legacyOptions) {
@@ -10,7 +11,7 @@ class ClickableMarker extends mapboxgl.Marker {
 
     if (
       symbol !== 'circle' &&
-      (temakiNames.includes(symbol) || /^[a-z0-9]$/.test(symbol))
+      (phosphorNames.includes(symbol) || /^[a-z0-9]$/.test(symbol))
     ) {
       const symbolPath = document.createElement('path');
       this._element.querySelector('circle').replaceWith(symbolPath);
@@ -22,10 +23,12 @@ class ClickableMarker extends mapboxgl.Marker {
             `Error downloading the svg from: ../dist/icons/${symbol}.svg`
           );
         } else {
-          symbolPath.outerHTML = `<path fill="${symbolColor}" transform="translate(6 6)"
-            d="${xml.documentElement
-              .getElementsByTagName('path')[0]
-              .getAttribute('d')}"></path>`;
+          // Phosphor icons use a 256x256 viewBox, so we need to scale them down
+          // Scale factor: ~0.06 (15/256) to fit in the marker, then translate to center
+          const pathD = xml.documentElement
+            .getElementsByTagName('path')[0]
+            .getAttribute('d');
+          symbolPath.outerHTML = `<path fill="${symbolColor}" transform="translate(6 6) scale(0.06)" d="${pathD}"></path>`;
         }
       });
     }

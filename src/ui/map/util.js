@@ -16,11 +16,12 @@ const {
 const markers = [];
 let activeLinePositionSlider = null;
 
-const temakiNames = Object.keys(require('@rapideditor/temaki/data/icons.json'));
-let temakiOptions = '';
+const { icons: phosphorIcons } = require('@phosphor-icons/core');
+const phosphorNames = phosphorIcons.map((icon) => icon.name);
+let phosphorOptions = '';
 
-for (let i = 0; i < temakiNames.length; i++) {
-  temakiOptions += '<option value="' + temakiNames[i] + '">';
+for (let i = 0; i < phosphorNames.length; i++) {
+  phosphorOptions += '<option value="' + phosphorNames[i] + '">';
 }
 
 const addIds = (geojson) => {
@@ -284,7 +285,7 @@ function bindPopup(e, context, writable) {
         '"' +
         (!writable ? ' readonly' : '') +
         ' /><datalist id="marker-symbol">' +
-        temakiOptions +
+        phosphorOptions +
         '</datalist></td></tr>';
     } else if (key === 'stroke-width' && writable) {
       table +=

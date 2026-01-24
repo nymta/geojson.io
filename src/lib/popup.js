@@ -1,4 +1,5 @@
-const temakiNames = Object.keys(require('@rapideditor/temaki/data/icons.json'));
+const { icons: phosphorIcons } = require('@phosphor-icons/core');
+const phosphorNames = phosphorIcons.map((icon) => icon.name);
 
 module.exports = function (context) {
   return function (e, id) {
@@ -116,8 +117,8 @@ module.exports = function (context) {
             .attr('value', 'circle')
             .attr('list', 'marker-symbol');
           const datalist = td.append('datalist').attr('id', 'marker-symbol');
-          for (let i = 0; i < temakiNames.length; i++) {
-            datalist.append('option').attr('value', temakiNames[i]);
+          for (let i = 0; i < phosphorNames.length; i++) {
+            datalist.append('option').attr('value', phosphorNames[i]);
           }
         }
       }
