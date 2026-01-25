@@ -67,8 +67,8 @@ export default {
           dest: './dist'
         },
         {
-          src: 'node_modules/@rapideditor/temaki/icons',
-          dest: './dist'
+          src: 'node_modules/@phosphor-icons/core/assets/regular/*.svg',
+          dest: './dist/icons'
         },
         {
           src: 'img/marker-chars/*.svg',
