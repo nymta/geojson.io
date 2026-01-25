@@ -17,10 +17,10 @@ class ClickableMarker extends mapboxgl.Marker {
       this._element.querySelector('circle').replaceWith(symbolPath);
 
       // download svg symbol and insert its path where the circle was
-      d3.xml(`../dist/icons/${symbol}.svg`, (err, xml) => {
+      d3.xml(`../dist/icons/${symbol}-fill.svg`, (err, xml) => {
         if (err) {
           console.error(
-            `Error downloading the svg from: ../dist/icons/${symbol}.svg`
+            `Error downloading the svg from: ../dist/icons/${symbol}-fill.svg`
           );
         } else {
           // Phosphor icons use a 256x256 viewBox, so we need to scale them down

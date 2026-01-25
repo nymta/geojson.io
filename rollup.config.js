@@ -67,7 +67,7 @@ export default {
           dest: './dist'
         },
         {
-          src: 'node_modules/@phosphor-icons/core/assets/regular/*.svg',
+          src: 'node_modules/@phosphor-icons/core/assets/fill/*.svg',
           dest: './dist/icons'
         },
         {
