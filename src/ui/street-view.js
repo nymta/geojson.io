@@ -1,23 +1,20 @@
 /**
  * Street View Mode
  *
- * Option-click on the map to set an origin point.
- * A circle appears around the origin with an arrow pointing toward the cursor.
- * Click again to open Google Street View at the origin, looking in the arrow's direction.
+ * Hold Option to place an orange dot at cursor. Move mouse to aim the arrow.
+ * Click to open Google Street View at the dot location, looking in the arrow direction.
+ * Release Option or press Escape to cancel.
  */
 
 const turfBearing = require('@turf/bearing').default;
 
-const CIRCLE_RADIUS = 48;
 const ARROW_COLOR = '#FF6B35';
-const CIRCLE_COLOR = '#FF6B35';
 
 const streetViewMode = {
   active: false,
-  origin: null, // { lngLat, screenPoint }
+  origin: null, // { lngLat, lat, lng }
   heading: 0,
-  overlay: null,
-  marker: null
+  overlay: null
 };
 
 /**
@@ -31,32 +28,14 @@ function calculateBearing(from, to) {
 }
 
 /**
- * Create the overlay element (circle + arrow)
+ * Create the overlay element (just the orange dot - arrow is drawn separately)
  */
 function createOverlay() {
   const overlay = document.createElement('div');
   overlay.className = 'street-view-overlay';
   overlay.innerHTML = `
-    <svg width="${CIRCLE_RADIUS * 2 + 20}" height="${CIRCLE_RADIUS * 2 + 20}" 
-         style="position: absolute; left: ${-CIRCLE_RADIUS - 10}px; top: ${
-    -CIRCLE_RADIUS - 10
-  }px;">
-      <defs>
-        <marker id="arrowhead" markerWidth="5" markerHeight="4" 
-                refX="4.5" refY="2" orient="auto" fill="${ARROW_COLOR}">
-          <polygon points="0 0, 5 2, 0 4" />
-        </marker>
-      </defs>
-      <circle cx="${CIRCLE_RADIUS + 10}" cy="${
-    CIRCLE_RADIUS + 10
-  }" r="${CIRCLE_RADIUS}" 
-              fill="none" stroke="${CIRCLE_COLOR}" stroke-width="2" stroke-dasharray="4 4" />
-      <circle cx="${CIRCLE_RADIUS + 10}" cy="${CIRCLE_RADIUS + 10}" r="5" 
-              fill="${ARROW_COLOR}" />
-      <line class="direction-arrow" 
-            x1="${CIRCLE_RADIUS + 10}" y1="${CIRCLE_RADIUS + 10}" 
-            x2="${CIRCLE_RADIUS + 10}" y2="${10}"
-            stroke="${ARROW_COLOR}" stroke-width="2" marker-end="url(#arrowhead)" />
+    <svg class="dot-svg" width="20" height="20" style="position: absolute; left: -10px; top: -10px;">
+      <circle cx="10" cy="10" r="5" fill="${ARROW_COLOR}" />
     </svg>
   `;
 
@@ -64,33 +43,55 @@ function createOverlay() {
     position: absolute;
     pointer-events: none;
     z-index: 1000;
-    transform: translate(0, 0);
   `;
 
   return overlay;
 }
 
 /**
- * Update the arrow direction based on mouse position
+ * Create the arrow SVG element that spans the map container
  */
-function updateArrowDirection(overlay, angleDeg) {
-  const arrow = overlay.querySelector('.direction-arrow');
-  const cx = CIRCLE_RADIUS + 10;
-  const cy = CIRCLE_RADIUS + 10;
-
-  // Convert angle to radians (adjust so 0 is pointing up/north)
-  const angleRad = ((angleDeg - 90) * Math.PI) / 180;
-
-  // Calculate endpoint on the circle
-  const endX = cx + CIRCLE_RADIUS * Math.cos(angleRad);
-  const endY = cy + CIRCLE_RADIUS * Math.sin(angleRad);
-
-  arrow.setAttribute('x2', endX);
-  arrow.setAttribute('y2', endY);
+function createArrowSvg(container) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('street-view-arrow');
+  svg.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 999;
+  `;
+  svg.innerHTML = `
+    <defs>
+      <marker id="sv-arrowhead" markerWidth="5" markerHeight="4" 
+              refX="4.5" refY="2" orient="auto" fill="${ARROW_COLOR}">
+        <polygon points="0 0, 5 2, 0 4" />
+      </marker>
+    </defs>
+    <line class="direction-arrow" x1="0" y1="0" x2="0" y2="0"
+          stroke="${ARROW_COLOR}" stroke-width="2" marker-end="url(#sv-arrowhead)" />
+  `;
+  container.appendChild(svg);
+  return svg;
 }
 
 /**
- * Update overlay position to follow the map point
+ * Update the arrow to point from origin to cursor screen position
+ */
+function updateArrow(arrowSvg, originPoint, cursorPoint) {
+  const arrow = arrowSvg.querySelector('.direction-arrow');
+  if (arrow) {
+    arrow.setAttribute('x1', originPoint.x);
+    arrow.setAttribute('y1', originPoint.y);
+    arrow.setAttribute('x2', cursorPoint.x);
+    arrow.setAttribute('y2', cursorPoint.y);
+  }
+}
+
+/**
+ * Update overlay (dot) position to follow the map point
  */
 function updateOverlayPosition(map, overlay, lngLat) {
   const point = map.project(lngLat);
@@ -111,15 +112,21 @@ function openStreetView(lat, lng, heading) {
 /**
  * Exit street view mode and clean up
  */
-function exitStreetViewMode(map) {
+function exitStreetViewMode(map, arrowSvg) {
   if (streetViewMode.overlay) {
     streetViewMode.overlay.remove();
+  }
+  if (arrowSvg) {
+    arrowSvg.remove();
   }
 
   streetViewMode.active = false;
   streetViewMode.origin = null;
   streetViewMode.heading = 0;
   streetViewMode.overlay = null;
+
+  // Re-enable map dragging
+  map.dragPan.enable();
 
   // Restore cursor to grab
   map.getCanvas().style.cursor = 'grab';
@@ -132,88 +139,94 @@ function initStreetView(context) {
   const map = context.map;
   const container = map.getContainer();
 
-  // Handle option-click to set origin
+  // Track current mouse position
+  let currentMouseLngLat = null;
+
+  // Arrow SVG element (created when entering street view mode)
+  let arrowSvg = null;
+
+  // Handle clicks
   map.on('click', (e) => {
-    // Only activate on Option/Alt + click
-    if (e.originalEvent.altKey) {
-      e.preventDefault();
-
-      // If already in street view mode, update origin
-      if (streetViewMode.active) {
-        exitStreetViewMode(map);
-      }
-
-      // Enter street view mode
-      streetViewMode.active = true;
-      streetViewMode.origin = {
-        lngLat: e.lngLat,
-        lat: e.lngLat.lat,
-        lng: e.lngLat.lng
-      };
-
-      // Create and add overlay
-      streetViewMode.overlay = createOverlay();
-      container.appendChild(streetViewMode.overlay);
-      updateOverlayPosition(map, streetViewMode.overlay, e.lngLat);
-
-      // Set cursor to default while in street view mode
-      map.getCanvas().style.cursor = 'default';
-
-      return;
-    }
-
-    // Regular click while in street view mode → open Street View
-    if (streetViewMode.active && !e.originalEvent.altKey) {
+    // Click while in street view mode → open Street View
+    if (streetViewMode.active && e.originalEvent.altKey) {
       const { lat, lng } = streetViewMode.origin;
       const heading = streetViewMode.heading;
 
       openStreetView(lat, lng, heading);
-      exitStreetViewMode(map);
+      exitStreetViewMode(map, arrowSvg);
+      arrowSvg = null;
     }
   });
 
-  // Handle mouse move to update arrow direction
+  // Handle mouse move to track position and update arrow
   map.on('mousemove', (e) => {
-    if (!streetViewMode.active || !streetViewMode.origin) return;
+    // Always track mouse position
+    currentMouseLngLat = e.lngLat;
 
-    // Calculate bearing from origin to cursor
-    const bearing = calculateBearing(streetViewMode.origin.lngLat, e.lngLat);
-    streetViewMode.heading = bearing;
+    // Update arrow if in street view mode
+    if (streetViewMode.active && streetViewMode.origin && arrowSvg) {
+      // Calculate bearing from origin to cursor
+      const bearing = calculateBearing(streetViewMode.origin.lngLat, e.lngLat);
+      streetViewMode.heading = bearing;
 
-    // Update arrow visual
-    updateArrowDirection(streetViewMode.overlay, bearing);
+      // Update arrow to point from origin to cursor
+      const originPoint = map.project(streetViewMode.origin.lngLat);
+      const cursorPoint = map.project(e.lngLat);
+      updateArrow(arrowSvg, originPoint, cursorPoint);
+    }
   });
 
   // Update overlay position when map moves
   map.on('move', () => {
-    if (
-      streetViewMode.active &&
-      streetViewMode.overlay &&
-      streetViewMode.origin
-    ) {
-      updateOverlayPosition(
-        map,
-        streetViewMode.overlay,
-        streetViewMode.origin.lngLat
-      );
+    if (streetViewMode.active && streetViewMode.overlay && streetViewMode.origin) {
+      updateOverlayPosition(map, streetViewMode.overlay, streetViewMode.origin.lngLat);
     }
   });
 
-  // Cancel on Escape key
+  // Handle keydown events
   document.addEventListener('keydown', (e) => {
+    // Cancel on Escape
     if (e.key === 'Escape' && streetViewMode.active) {
-      exitStreetViewMode(map);
+      exitStreetViewMode(map, arrowSvg);
+      arrowSvg = null;
+      return;
     }
 
-    // When Option/Alt is pressed (and not already in street view mode), show crosshair cursor
-    if (e.key === 'Alt' && !streetViewMode.active) {
+    // When Option/Alt is pressed, enter street view mode at current mouse position
+    if (e.key === 'Alt' && !streetViewMode.active && currentMouseLngLat) {
+      streetViewMode.active = true;
+      streetViewMode.origin = {
+        lngLat: currentMouseLngLat,
+        lat: currentMouseLngLat.lat,
+        lng: currentMouseLngLat.lng
+      };
+      streetViewMode.heading = 90; // Default heading east
+
+      // Create and add the dot overlay
+      streetViewMode.overlay = createOverlay();
+      container.appendChild(streetViewMode.overlay);
+      updateOverlayPosition(map, streetViewMode.overlay, currentMouseLngLat);
+
+      // Create the arrow SVG
+      arrowSvg = createArrowSvg(container);
+      const originPoint = map.project(currentMouseLngLat);
+      updateArrow(arrowSvg, originPoint, originPoint); // Arrow starts at origin
+
+      // Disable map dragging while in street view mode
+      map.dragPan.disable();
+
       map.getCanvas().style.cursor = 'crosshair';
     }
   });
 
-  // When Option/Alt is released without clicking, restore cursor
+  // Handle keyup events
   document.addEventListener('keyup', (e) => {
-    if (e.key === 'Alt' && !streetViewMode.active) {
+    // When Option/Alt is released, cancel street view mode
+    if (e.key === 'Alt') {
+      if (streetViewMode.active) {
+        exitStreetViewMode(map, arrowSvg);
+        arrowSvg = null;
+      }
       map.getCanvas().style.cursor = 'grab';
     }
   });
