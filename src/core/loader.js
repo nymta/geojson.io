@@ -1,5 +1,6 @@
 const qs = require('qs-hash'),
   zoomextent = require('../lib/zoomextent'),
+  z = require('../lib/z'),
   flash = require('../ui/flash');
 
 module.exports = function (context) {
@@ -51,6 +52,18 @@ module.exports = function (context) {
     }
   }
 
+  function loadZ(data) {
+    z.decodeZGeoJSON(data)
+      .then((geojson) => {
+        context.data.set({ map: geojson });
+        history.replaceState('', document.title, window.location.pathname);
+        zoomextent(context);
+      })
+      .catch(() => {
+        return flash(context.container, 'Could not decode z payload');
+      });
+  }
+
   function loadUrl(data) {
     d3.json(data)
       .header('Accept', 'application/vnd.geo+json')
@@ -73,13 +86,15 @@ module.exports = function (context) {
   }
 
   return function (query) {
-    if (!query.id && !query.data) return;
+    if (!query.id && !query.data && !query.z) return;
 
     const oldRoute = d3.event
       ? qs.stringQs(d3.event.oldURL.split('#')[1]).id
       : context.data.get('route');
 
-    if (query.data) {
+    if (query.z) {
+      loadZ(query.z);
+    } else if (query.data) {
       // eslint-disable-next-line
       var type = query.data.match(/^(data\:[\w\-]+\/[\w\-]+\,?)/);
       if (type) {
@@ -88,6 +103,8 @@ module.exports = function (context) {
         } else if (type[0] === 'data:text/x-url,') {
           loadUrl(query.data.replace(type[0], ''));
         }
+      } else {
+        inlineJSON(query.data);
       }
     } else if (query.id !== oldRoute) {
       context.container.select('.map').classed('loading', true);

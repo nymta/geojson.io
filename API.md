@@ -29,6 +29,21 @@ as per `encodeURIComponent(JSON.stringify(geojson_data))`.
 
 http://geojson.io/#data=data:application/json,%7B%22type%22%3A%22LineString%22%2C%22coordinates%22%3A%5B%5B0%2C0%5D%2C%5B10%2C10%5D%5D%7D
 
+### `z=<base64url>`
+
+Open the map and load compact NYC payload data. The payload is expected to be
+base64url-encoded (no `=` padding), DEFLATE-compressed JSON and contain a
+versioned object (currently `v: 2`) with compact feature geometry deltas.
+
+`z` decode contract:
+
+- base64url decode (`-`/`_` alphabet) to compressed bytes
+- inflate with DEFLATE
+- parse JSON payload
+- reconstruct GeoJSON coordinates from reference + delta-encoded microdegrees
+
+When `z` is not present, existing `data=` URL loading remains supported.
+
 ### `data=data:text/x-url,`
 
 Load GeoJSON data from a URL on the internet onto the map. The URL must
