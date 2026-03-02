@@ -13,6 +13,55 @@ const validate = require('../lib/validate');
 const zoomextent = require('../lib/zoomextent');
 const flash = require('../ui/flash');
 
+function isFeatureVisible(feature) {
+  return feature && feature._visible !== false;
+}
+
+function getVisibleGeoJSON(geojson) {
+  if (!geojson || !Array.isArray(geojson.features)) return geojson;
+
+  const hasHidden = geojson.features.some(
+    (feature) => feature && feature._visible === false
+  );
+  if (!hasHidden) return geojson;
+
+  return {
+    ...geojson,
+    features: geojson.features.filter(isFeatureVisible)
+  };
+}
+
+function mergeHiddenFeatures(currentMap, nextMap) {
+  if (
+    !currentMap ||
+    !nextMap ||
+    !Array.isArray(currentMap.features) ||
+    !Array.isArray(nextMap.features)
+  ) {
+    return nextMap;
+  }
+
+  const hidden = [];
+  currentMap.features.forEach((feature, index) => {
+    if (feature && feature._visible === false) {
+      hidden.push({ index, feature });
+    }
+  });
+
+  if (!hidden.length) return nextMap;
+
+  const merged = nextMap.features.slice();
+  hidden.forEach(({ index, feature }) => {
+    const insertAt = Math.max(0, Math.min(index, merged.length));
+    merged.splice(insertAt, 0, feature);
+  });
+
+  return {
+    ...nextMap,
+    features: merged
+  };
+}
+
 module.exports = function (context) {
   CodeMirror.keyMap.tabSpace = {
     Tab: function (cm) {
@@ -128,6 +177,7 @@ module.exports = function (context) {
 
     function changeValidated(err, data, zoom) {
       if (!err) {
+        const currentMap = context.data.get('map');
         let updateSource = 'json';
         const originalType = data.type;
         // normalize into a FeatureCollection
@@ -152,6 +202,8 @@ module.exports = function (context) {
           );
         }
 
+        data = mergeHiddenFeatures(currentMap, data);
+
         // don't set data unless it has actually changed
         if (!_.isEqual(data, context.data.get('map'))) {
           context.data.set({ map: data }, updateSource);
@@ -162,7 +214,9 @@ module.exports = function (context) {
 
     context.dispatch.on('change.json', (event) => {
       if (event.source !== 'json') {
-        editor.setValue(JSON.stringify(context.data.get('map'), null, 2));
+        editor.setValue(
+          JSON.stringify(getVisibleGeoJSON(context.data.get('map')), null, 2)
+        );
         // If the data context (geojson) has no features then focus and select all
         if (
           !context.data.get('map').features ||
@@ -174,7 +228,9 @@ module.exports = function (context) {
       }
     });
 
-    editor.setValue(JSON.stringify(context.data.get('map'), null, 2));
+    editor.setValue(
+      JSON.stringify(getVisibleGeoJSON(context.data.get('map')), null, 2)
+    );
   }
 
   render.off = function () {

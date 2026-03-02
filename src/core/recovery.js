@@ -6,7 +6,7 @@ module.exports = function (context) {
 
   const query = qs.stringQs(location.hash.split('#')[1] || '');
 
-  if (location.hash !== '#new' && !query.id && !query.data) {
+  if (location.hash !== '#new' && !query.id && !query.data && !query.z) {
     // Skip recovery prompt - just clear any saved recovery data
     context.storage.remove('recover');
   }
