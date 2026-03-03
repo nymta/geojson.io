@@ -20,7 +20,8 @@ function decodeNycPayload(payload) {
     return payload;
   }
 
-  if (!payload || payload.v !== 2) {
+  const version = payload && Number(payload.v);
+  if (!payload || Number.isNaN(version) || version < 1) {
     throw new Error('Unsupported z payload version');
   }
 

@@ -74,6 +74,71 @@ tape('decodeNycPayload supports feature-level compact point geometry', (t) => {
   t.end();
 });
 
+tape('decodeZGeoJSON full pipeline with real MTA z= input', (t) => {
+  const encoded =
+    'ZY3BDoIwEER_xQzXbVJTCdCvMHo0HIi0kQAtqVUPhH93q-DFw04mbzYzM57Qe0KA' +
+    'vohCVWUupaSDLPKSTU2wHMxoU5wIiZVHaEwgPj1jbEJvgrj6wXMRMmv5SXLqmtEw' +
+    'OBrndufYxM47LAv9FdJHqiRqc-vIsI3cY_B9astSubXMv0i8ujbeoNVv7-Qf0fBQvbwB';
+
+  const expected = {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: { 'marker-color': '#ff0000', name: 'Penn Station' },
+        geometry: { type: 'Point', coordinates: [-73.993, 40.75] }
+      },
+      {
+        type: 'Feature',
+        properties: { stroke: '#0000ff', 'stroke-width': 3, name: 'Route' },
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [-73.993, 40.75],
+            [-73.985, 40.759],
+            [-73.982, 40.768]
+          ]
+        }
+      }
+    ]
+  };
+
+  z.decodeZGeoJSON(encoded).then(
+    (geojson) => {
+      t.equal(geojson.type, 'FeatureCollection', 'returns FeatureCollection');
+      t.equal(geojson.features.length, 2, 'decodes two features');
+
+      t.deepEqual(
+        geojson.features[0].geometry,
+        expected.features[0].geometry,
+        'point geometry matches expected'
+      );
+      t.deepEqual(
+        geojson.features[0].properties,
+        expected.features[0].properties,
+        'point properties match expected'
+      );
+
+      t.deepEqual(
+        geojson.features[1].geometry,
+        expected.features[1].geometry,
+        'line geometry matches expected'
+      );
+      t.deepEqual(
+        geojson.features[1].properties,
+        expected.features[1].properties,
+        'line properties match expected'
+      );
+
+      t.end();
+    },
+    (err) => {
+      t.fail('decodeZGeoJSON rejected: ' + err.message);
+      t.end();
+    }
+  );
+});
+
 tape(
   'decodeNycPayload decodes mixed geometries with per-feature properties',
   (t) => {

@@ -59,7 +59,8 @@ module.exports = function (context) {
         history.replaceState('', document.title, window.location.pathname);
         zoomextent(context);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('z decode error:', err);
         return flash(context.container, 'Could not decode z payload');
       });
   }
