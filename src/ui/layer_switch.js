@@ -166,7 +166,6 @@ module.exports = function (context) {
       // streets is default, but on subsequent runs we must change styles
       if (map && map._loaded) {
         const { title, style, config } = d3.select(clicked).datum();
-
         map.setStyle(style, {
           ...(config ? { config } : {})
         });
@@ -196,11 +195,10 @@ module.exports = function (context) {
 
     const activeStyle = context.storage.get('style') || DEFAULT_STYLE;
 
-    // Check if activeStyle exists in styles array, default to 'MTA light' if not
+    // Check if activeStyle exists in styles array, default to Streets light if not.
     const styleExists = styles.some(({ title }) => title === activeStyle);
-    const correctedStyle = styleExists ? activeStyle : 'MTA light';
+    const correctedStyle = styleExists ? activeStyle : 'Streets light';
 
-    // Update localStorage if we had to correct the style
     if (!styleExists) {
       context.storage.set('style', correctedStyle);
     }
