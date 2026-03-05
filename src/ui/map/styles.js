@@ -1,12 +1,31 @@
+const clone = require('clone');
 const { NEARMAP_API_KEY } = require('../../constants');
+const FADED_LIGHT_STYLE = require('../../../faded-light-style.json');
+
+function withSatelliteVisibility(visible) {
+  const style = clone(FADED_LIGHT_STYLE);
+  const satelliteLayer = style.layers.find(({ id }) => id === 'satellite');
+
+  if (satelliteLayer) {
+    satelliteLayer.layout = {
+      ...(satelliteLayer.layout || {}),
+      visibility: visible ? 'visible' : 'none'
+    };
+  }
+
+  return style;
+}
+
+const FADED_LIGHT_STREETS_STYLE = withSatelliteVisibility(false);
+const FADED_LIGHT_SATELLITE_STYLE = withSatelliteVisibility(true);
 
 module.exports = [
   {
-    title: 'MTA light',
-    style: 'mapbox://styles/wfisher/cmjt9n67e000101rd80g24e01'
+    title: 'Streets light',
+    style: FADED_LIGHT_STREETS_STYLE
   },
   {
-    title: 'Mapbox dark',
+    title: 'Streets dark',
     style: 'mapbox://styles/mapbox/standard',
     config: {
       basemap: {
@@ -17,7 +36,7 @@ module.exports = [
   },
   {
     title: 'Mapbox satellite',
-    style: 'mapbox://styles/mapbox/standard-satellite'
+    style: FADED_LIGHT_SATELLITE_STYLE
   },
   {
     title: 'Nearmap',
@@ -46,9 +65,5 @@ module.exports = [
         }
       ]
     }
-  },
-  {
-    title: 'Mapbox streets',
-    style: 'mapbox://styles/mapbox/standard'
   }
 ];

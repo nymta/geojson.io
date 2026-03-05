@@ -108,8 +108,9 @@ module.exports = function (context, readonly) {
     const activeStyle = context.storage.get('style') || DEFAULT_STYLE;
 
     const foundStyle = styles.find((d) => d.title === activeStyle);
-    const { style, config } =
-      foundStyle || styles.find((d) => d.title === 'MTA light');
+    const normalizedFoundStyle =
+      foundStyle || styles.find((d) => d.title === 'Streets light');
+    const { style, config } = normalizedFoundStyle;
 
     context.map = new mapboxgl.Map({
       container: 'map',
