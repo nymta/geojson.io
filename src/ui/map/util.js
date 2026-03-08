@@ -104,7 +104,7 @@ const addMarkers = (geojson, context, writable) => {
         defaultColor = DEFAULT_SATELLITE_FEATURE_COLOR;
         defaultSymbolColor = '#fff';
         break;
-      case 'Mapbox dark':
+      case 'Streets dark':
         defaultColor = DEFAULT_LIGHT_FEATURE_COLOR;
         defaultSymbolColor = DEFAULT_DARK_FEATURE_COLOR;
         break;
